@@ -4,7 +4,7 @@ import { FileInput } from './FileInput';
 import { NumberInputs } from './NumberInputs';
 import { Results } from './Results';
 import { FormData, GeneratedResult } from '../types';
-import { readFileContent } from '../utils/fileUtils';
+import { readFileContent, removeDuplicates, parseCSV } from '../utils/fileUtils';
 import { generateRandomNumbers, selectRandomLines } from '../utils/randomUtils';
 
 export function RaffleGenerator() {
@@ -13,7 +13,10 @@ export function RaffleGenerator() {
     max: 100,
     quantity: 1,
     file: null,
-    lineCount: 1
+    lineCount: 1,
+    removeDuplicates: false,
+    inputMode: 'file',
+    pastedContent: []
   });
 
   const [result, setResult] = useState<GeneratedResult | null>(null);
@@ -36,29 +39,79 @@ export function RaffleGenerator() {
     setError(null);
   };
 
+  const handleToggleDuplicates = (value: boolean) => {
+    setFormData(prev => ({ ...prev, removeDuplicates: value }));
+    setError(null);
+  };
+
+  const handleInputModeChange = (mode: 'file' | 'paste') => {
+    setFormData(prev => ({ ...prev, inputMode: mode }));
+    setError(null);
+  };
+
+  const handlePastedContent = (content: string[]) => {
+    setFormData(prev => ({ ...prev, pastedContent: content }));
+    setError(null);
+  };
+
   const validateForm = async (): Promise<boolean> => {
-    if (formData.file) {
-      const lines = await readFileContent(formData.file);
+    if (formData.inputMode === 'file' && formData.file) {
+      let lines: string[] = [];
+
+      if (formData.file.name.endsWith('.csv') || formData.file.name.endsWith('.xls') || formData.file.name.endsWith('.xlsx')) {
+        lines = await parseCSV(formData.file);
+      } else {
+        lines = await readFileContent(formData.file);
+      }
+
+      if (formData.removeDuplicates) {
+        lines = removeDuplicates(lines);
+      }
+
       if (formData.lineCount > lines.length) {
-        setError(`File only contains ${lines.length} lines`);
+        setError(`Dosyada sadece ${lines.length} satır var${formData.removeDuplicates ? ' (tekrarlar temizlendikten sonra)' : ''}`);
         return false;
       }
+
       if (formData.lineCount < 1) {
-        setError('Must select at least one line');
+        setError('En az bir kazanan seçmelisiniz');
+        return false;
+      }
+    } else if (formData.inputMode === 'paste') {
+      let lines = [...formData.pastedContent];
+
+      if (formData.removeDuplicates) {
+        lines = removeDuplicates(lines);
+      }
+
+      if (lines.length === 0) {
+        setError('Lütfen bir liste yapıştırın');
+        return false;
+      }
+
+      if (formData.lineCount > lines.length) {
+        setError(`Yapıştırılan listede sadece ${lines.length} satır var${formData.removeDuplicates ? ' (tekrarlar temizlendikten sonra)' : ''}`);
+        return false;
+      }
+
+      if (formData.lineCount < 1) {
+        setError('En az bir kazanan seçmelisiniz');
         return false;
       }
     } else {
       if (formData.min >= formData.max) {
-        setError('Minimum must be less than maximum');
+        setError('Minimum numara maksimumdan küçük olmalıdır');
         return false;
       }
+
       const range = formData.max - formData.min + 1;
       if (formData.quantity > range) {
-        setError('Cannot generate more numbers than the available range');
+        setError('Mevcut aralıktan daha fazla sayıda numara üretilemez');
         return false;
       }
+
       if (formData.quantity < 1) {
-        setError('Must generate at least one number');
+        setError('En az bir numara seçmelisiniz');
         return false;
       }
     }
@@ -75,8 +128,28 @@ export function RaffleGenerator() {
 
     try {
       setTimeout(async () => {
-        if (formData.file) {
-          const lines = await readFileContent(formData.file);
+        if (formData.inputMode === 'file' && formData.file) {
+          let lines: string[] = [];
+
+          if (formData.file.name.endsWith('.csv') || formData.file.name.endsWith('.xls') || formData.file.name.endsWith('.xlsx')) {
+            lines = await parseCSV(formData.file);
+          } else {
+            lines = await readFileContent(formData.file);
+          }
+
+          if (formData.removeDuplicates) {
+            lines = removeDuplicates(lines);
+          }
+
+          const selectedLines = selectRandomLines(lines, formData.lineCount);
+          setResult({ type: 'lines', data: selectedLines });
+        } else if (formData.inputMode === 'paste') {
+          let lines = [...formData.pastedContent];
+
+          if (formData.removeDuplicates) {
+            lines = removeDuplicates(lines);
+          }
+
           const selectedLines = selectRandomLines(lines, formData.lineCount);
           setResult({ type: 'lines', data: selectedLines });
         } else {
@@ -86,7 +159,7 @@ export function RaffleGenerator() {
         setLoading(false);
       }, 500);
     } catch (err) {
-      setError('Failed to generate results');
+      setError('Sonuçlar oluşturulurken bir hata oluştu');
       setLoading(false);
     }
   };
@@ -98,7 +171,7 @@ export function RaffleGenerator() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      setError('Failed to copy to clipboard');
+      setError('Panoya kopyalanamadı');
     }
   };
 
@@ -115,9 +188,14 @@ export function RaffleGenerator() {
                   onFileChange={handleFileChange}
                   onLineCountChange={handleLineCountChange}
                   lineCount={formData.lineCount}
+                  removeDuplicates={formData.removeDuplicates}
+                  onToggleDuplicates={handleToggleDuplicates}
+                  inputMode={formData.inputMode}
+                  onInputModeChange={handleInputModeChange}
+                  onPastedContent={handlePastedContent}
                 />
 
-                {!formData.file && (
+                {formData.inputMode !== 'file' && formData.inputMode !== 'paste' && (
                   <NumberInputs
                     min={formData.min}
                     max={formData.max}
