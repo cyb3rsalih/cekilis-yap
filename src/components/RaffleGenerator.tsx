@@ -4,7 +4,7 @@ import { FileInput } from './FileInput';
 import { NumberInputs } from './NumberInputs';
 import { Results } from './Results';
 import { FormData, GeneratedResult } from '../types';
-import { readFileContent, removeDuplicates, parseCSV } from '../utils/fileUtils';
+import { readFileContent, removeDuplicates, parseCSV, parseSpreadsheet } from '../utils/fileUtils';
 import { generateRandomNumbers, selectRandomLines } from '../utils/randomUtils';
 
 export function RaffleGenerator() {
@@ -59,7 +59,12 @@ export function RaffleGenerator() {
       let lines: string[] = [];
 
       if (formData.file.name.endsWith('.csv') || formData.file.name.endsWith('.xls') || formData.file.name.endsWith('.xlsx')) {
-        lines = await parseCSV(formData.file);
+        try {
+          lines = await parseSpreadsheet(formData.file);
+        } catch (error) {
+          setError('Dosya okunamadı veya doğru formatta değil');
+          return false;
+        }
       } else {
         lines = await readFileContent(formData.file);
       }
@@ -132,7 +137,7 @@ export function RaffleGenerator() {
           let lines: string[] = [];
 
           if (formData.file.name.endsWith('.csv') || formData.file.name.endsWith('.xls') || formData.file.name.endsWith('.xlsx')) {
-            lines = await parseCSV(formData.file);
+            lines = await parseSpreadsheet(formData.file);
           } else {
             lines = await readFileContent(formData.file);
           }

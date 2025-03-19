@@ -9,6 +9,37 @@ interface ResultsProps {
 }
 
 export function Results({ result, onCopy, copied }: ResultsProps) {
+  // Function to determine if a result item has multiple columns
+  const hasMultipleColumns = (item: string): boolean => {
+    return item.includes('\t');
+  };
+
+  // Function to render either a simple text or a table row
+  const renderResultItem = (item: string, index: number) => {
+    if (!hasMultipleColumns(item)) {
+      return (
+        <p key={index} className="lead mb-1">
+          {item}
+        </p>
+      );
+    }
+
+    const columns = item.split('\t');
+    return (
+      <div key={index} className="table-responsive mb-2">
+        <table className="table table-sm table-bordered">
+          <tbody>
+            <tr>
+              {columns.map((col, colIndex) => (
+                <td key={colIndex}>{col}</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
     <div className="mt-4">
       <div className="card bg-light">
@@ -26,11 +57,7 @@ export function Results({ result, onCopy, copied }: ResultsProps) {
             </button>
           </div>
           <div className="card-text">
-            {result.data.map((item, index) => (
-              <p key={index} className="lead mb-1">
-                {item}
-              </p>
-            ))}
+            {result.data.map((item, index) => renderResultItem(item, index))}
           </div>
         </div>
       </div>
