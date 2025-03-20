@@ -186,7 +186,7 @@ export function RaffleGenerator() {
         <div className="col-md-8 col-lg-6">
           <div className="card shadow">
             <div className="card-body">
-              <h2 className="card-title text-center mb-4">Emarekip Çekiliş Sistemi</h2>
+              <h2 className="card-title text-center mb-4">Çekiliş Sistemi</h2>
 
               <form onSubmit={generateResults}>
                 <FileInput

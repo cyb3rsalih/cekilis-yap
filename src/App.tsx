@@ -6,7 +6,7 @@ function App() {
     <div className="min-vh-100 bg-light">
       <nav className="navbar navbar-dark bg-primary">
         <div className="container">
-          <span className="navbar-brand mb-0 h1">Emarekip Çekiliş Sistemi</span>
+          <span className="navbar-brand mb-0 h1">Çekiliş Sistemi</span>
         </div>
       </nav>
       <RaffleGenerator />

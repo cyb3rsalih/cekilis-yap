@@ -13,7 +13,7 @@ RUN yarn install --frozen-lockfile
 # Copy the entire project
 COPY . .
 
-# Build the Next.js app
+# Build the Vite app
 RUN yarn build
 
 # Use a smaller production image
@@ -22,11 +22,18 @@ FROM node:22.11.0-alpine AS runner
 # Set working directory
 WORKDIR /app
 
-# Copy built files from the builder stage
-COPY --from=builder /app ./
+# Copy required files from the builder stage
+COPY --from=builder /app/dist /app/dist
+COPY --from=builder /app/package.json /app/yarn.lock ./
 
-# Expose the Next.js default port
-EXPOSE 3000
+# Install only production dependencies
+RUN yarn install --frozen-lockfile --production
 
-# Start the Next.js app
-CMD ["yarn", "start"]
+# Install serve to serve static files
+RUN yarn global add serve
+
+# Expose the Vite default port
+EXPOSE 5173
+
+# Start the Vite app using serve
+CMD ["serve", "-s", "dist", "-l", "5173"]
